@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <!--扫描逻辑层实现类-->
+    <context:component-scan base-package="com.pwj.jxzs.service">
+        <!--排除表现层实现类不扫描, 解决事务失效问题-->
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <!-- 读取连接数据库配置文件 -->
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:mysql.properties"/>
+    </bean>
+
+    <!-- 配置apache dbcp2数据库连接池 -->
+    <bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource"
+          init-method="createDataSource" destroy-method="close">
+        <property name="driverClassName" value="${jdbc.driver}" />
+        <property name="url" value="${jdbc.url}" />
+        <property name="username" value="${jdbc.username}" />
+        <property name="password" value="${jdbc.password}" />
+    </bean>
+
+    <!-- 由IOC构建SqlSessionFactory -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--注入数据源-->
+        <property name="dataSource" ref="dataSource"/>
+        <!--注入映射文件-->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"/>
+        <!--动态提供对象别名-->
+        <property name="typeAliasesPackage" value="com.pwj.jxzs"/>
+    </bean>
+
+    <!--mybatis与spring完美整合-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!--数据层接口配置-->
+        <property name="basePackage" value="com.pwj.jxzs.dao"/>
+        <!--sqlSessionFactory注入-->
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+
+    <!--事务管理器-->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--配置注解型事务-->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+</beans>
